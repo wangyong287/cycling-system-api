@@ -1,0 +1,69 @@
+version: '3.8'
+
+# ============================================================
+# 室内骑行系统 - CI 一键起服编排
+# 用途：GitHub Actions 跑 E2E 测试用，本地无 docker 也能用
+# 用法：docker compose up -d 然后跑 npm run test:e2e
+# 退出：docker compose down -v
+# ============================================================
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: cycling-postgres
+    environment:
+      POSTGRES_USER: cycling
+      POSTGRES_PASSWORD: cycling_test_pwd
+      POSTGRES_DB: cycling_test
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      # 第一次跑会自动 init，可解开下面这行直接用本地 init.sql
+      # - ./scripts/init.sql:/docker-entrypoint-initdb.d/01-init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U cycling -d cycling_test"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: cycling-redis
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: cycling-api
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      NODE_ENV: test
+      PORT: 3000
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_USERNAME: cycling
+      DB_PASSWORD: cycling_test_pwd
+      DB_DATABASE: cycling_test
+      DB_SYNCHRONIZE: "true"   # CI 里直接用 entity 同步建表（不要在生产用）
+      DB_LOGGING: "false"
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      JWT_SECRET: ci-jwt-secret-do-not-use-in-prod
+      JWT_EXPIRES_IN: 7d
+    ports:
+      - "3000:3000"
+
+volumes:
+  pgdata:
