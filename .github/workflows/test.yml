@@ -53,6 +53,12 @@ jobs:
       - name: 🔨 编译
         run: npm run build
 
+      - name: 🗄️ 初始化测试库（装 psql + 跑 init.sql）
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y postgresql-client
+          PGPASSWORD=cycling_test_pwd psql -h localhost -U cycling -d cycling_test -f scripts/init.sql
+
       - name: 🚀 起 nest 后端（写 .env + 等就绪）
         run: |
           cat > .env <<EOF
