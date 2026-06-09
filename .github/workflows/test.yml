@@ -84,6 +84,17 @@ jobs:
             sleep 1
           done
 
+      - name: 🔥 预热 DB 连接池（避免 E2E 第一次 query 超时）
+        run: |
+          for i in {1..10}; do
+            if curl -s http://localhost:3000/api/v1/courses | grep -q '"data"'; then
+              echo "✅ DB warmup OK after ${i} attempts"
+              break
+            fi
+            echo "⏳ waiting DB ready... attempt $i"
+            sleep 3
+          done
+
       - name: 🧪 跑核心 API E2E
         run: bash scripts/start-test.sh
 
