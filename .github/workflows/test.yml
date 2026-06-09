@@ -68,7 +68,7 @@ jobs:
           DB_USERNAME=cycling
           DB_PASSWORD=cycling_test_pwd
           DB_DATABASE=cycling_test
-          DB_SYNCHRONIZE=true
+          DB_SYNCHRONIZE=false
           DB_LOGGING=false
           REDIS_HOST=localhost
           REDIS_PORT=6379
