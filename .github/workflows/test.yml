@@ -95,8 +95,21 @@ jobs:
             sleep 3
           done
 
-      - name: 🧪 跑核心 API E2E
-        run: bash scripts/start-test.sh
+      - name: 🧪 跑核心 API E2E（详细日志捕获）
+        run: |
+          bash scripts/start-test.sh 2>&1 | tee /tmp/e2e-output.log || {
+            echo "❌ E2E failed, dumping debug info..."
+            echo "===== nest.log last 50 lines ====="
+            tail -50 /tmp/nest.log
+            echo "===== e2e-output.log full ====="
+            cat /tmp/e2e-output.log
+            echo "===== which APIs responded ====="
+            for path in /api/v1/courses /api/v1/courses/1 /api/v1/courses/recommend /api/v1/plans /api/v1/plans/1 /api/v1/plans/recommend; do
+              status=$(curl -s -o /dev/null -w "%{http_code}" "http://localhost:3000$path")
+              echo "  $path → $status"
+            done
+            exit 1
+          }
 
       - name: 📤 上传 nest 日志（失败时）
         if: failure()
